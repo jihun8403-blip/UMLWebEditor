@@ -260,7 +260,7 @@ export function CanvasView() {
 
   return (
     <div ref={containerRef} style={{ position: 'absolute', inset: 0 }}>
-      <canvas ref={canvasRef} />
+      <canvas id="uml-canvas" ref={canvasRef} />
     </div>
   );
 }

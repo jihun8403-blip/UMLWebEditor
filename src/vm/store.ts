@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { DiagramType, Project, UmlElement, Viewport } from './types';
 import { nextId } from './id';
 import { recomputeAllRouting, recomputeRoutingForElementIds } from './routing';
+import { clearAutosave, exportProjectJson, loadAutosave, saveAutosave } from './persistence';
 import {
   type Command,
   CreateElementCommand,
@@ -19,6 +20,12 @@ type EditorState = {
     selection: {
       elementIds: Set<string>;
     };
+    autosave: {
+      pending: boolean;
+      lastSavedAt?: string;
+      hasRecoveryData: boolean;
+      error?: string;
+    };
   };
   history: {
     undo: Command[];
@@ -30,6 +37,13 @@ type EditorState = {
   setViewport(v: Viewport): void;
 
   setSelection(ids: Set<string>): void;
+
+  exportJson(): void;
+  importProject(p: Project): void;
+  tryRecoverFromAutosave(): void;
+  clearRecoveryData(): void;
+
+  scheduleAutosave(): void;
 
   execute(cmd: Command, record?: boolean): void;
   undo(): void;
@@ -55,16 +69,23 @@ const initialProject: Project = {
   viewport: { scale: 1, offsetX: 40, offsetY: 40 },
 };
 
+let autosaveTimer: number | undefined;
+
+function resetHistory() {
+  return { undo: [] as Command[], redo: [] as Command[] };
+}
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   project: initialProject,
   ui: {
     tool: 'select',
     selection: { elementIds: new Set() },
+    autosave: {
+      pending: false,
+      hasRecoveryData: loadAutosave() !== null,
+    },
   },
-  history: {
-    undo: [],
-    redo: [],
-  },
+  history: resetHistory(),
 
   setTool(tool) {
     set((s) => ({ ui: { ...s.ui, tool } }));
@@ -83,6 +104,69 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((s) => ({ ui: { ...s.ui, selection: { elementIds: ids } } }));
   },
 
+  exportJson() {
+    exportProjectJson(get().project);
+  },
+
+  importProject(p) {
+    const project = recomputeAllRouting(p);
+    set((s) => ({
+      project,
+      history: resetHistory(),
+      ui: {
+        ...s.ui,
+        selection: { elementIds: new Set() },
+      },
+    }));
+    get().scheduleAutosave();
+  },
+
+  tryRecoverFromAutosave() {
+    const recovered = loadAutosave();
+    if (!recovered) return;
+    get().importProject(recovered);
+    set((s) => ({ ui: { ...s.ui, autosave: { ...s.ui.autosave, hasRecoveryData: true } } }));
+  },
+
+  clearRecoveryData() {
+    clearAutosave();
+    set((s) => ({ ui: { ...s.ui, autosave: { ...s.ui.autosave, hasRecoveryData: false } } }));
+  },
+
+  scheduleAutosave() {
+    if (autosaveTimer) {
+      window.clearTimeout(autosaveTimer);
+    }
+    set((s) => ({ ui: { ...s.ui, autosave: { ...s.ui.autosave, pending: true, error: undefined } } }));
+    autosaveTimer = window.setTimeout(() => {
+      try {
+        saveAutosave(get().project);
+        set((s) => ({
+          ui: {
+            ...s.ui,
+            autosave: {
+              ...s.ui.autosave,
+              pending: false,
+              lastSavedAt: new Date().toISOString(),
+              hasRecoveryData: true,
+            },
+          },
+        }));
+      } catch (e) {
+        set((s) => ({
+          ui: {
+            ...s.ui,
+            autosave: {
+              ...s.ui.autosave,
+              pending: false,
+              error: e instanceof Error ? e.message : 'autosave failed',
+            },
+          },
+        }));
+      }
+    }, 30_000);
+  },
+
   execute(cmd, record = true) {
     set((s) => {
       const nextProject = recomputeAllRouting(cmd.execute(s.project));
@@ -95,6 +179,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         },
       };
     });
+    get().scheduleAutosave();
   },
 
   undo() {
@@ -108,6 +193,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         history: { undo, redo: [...s.history.redo, last] },
       };
     });
+    get().scheduleAutosave();
   },
 
   redo() {
@@ -121,15 +207,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         history: { undo: [...s.history.undo, last], redo },
       };
     });
+    get().scheduleAutosave();
   },
 
   createDefaultElementForCurrentDiagram() {
     const { project } = get();
     const id = nextId('el');
+
+    const step = 24;
+    const lastSameDiagram = [...project.elements].reverse().find((e) => e.diagramType === project.diagramType);
+    const spawnPosition = lastSameDiagram
+      ? { x: lastSameDiagram.position.x + step, y: lastSameDiagram.position.y + step }
+      : { x: 120, y: 120 };
+
     const base = {
       id,
       diagramType: project.diagramType,
-      position: { x: 120, y: 120 },
+      position: spawnPosition,
       size: { width: 180, height: 90 },
     };
 
@@ -164,6 +258,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const updated = recomputeRoutingForElementIds(project, new Set(ids));
       return { project: updated };
     });
+    get().scheduleAutosave();
   },
 
   commitMoveSelected(prevPositions) {

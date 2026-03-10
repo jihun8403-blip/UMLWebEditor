@@ -1,198 +1,284 @@
-* * *
+# 1. 문서 개요
 
-# UML Web Editor
+본 문서는 **UML Web Editor MVP 기능을 검증하기 위한 테스트 케이스를 정의한다.**
 
-## Test Case 정의서 – MVP
+목표
 
-* * *
-
-## 1. 문서 개요
-
-본 문서는 UML Web Editor MVP의 기능 및 비기능 요구사항을 검증하기 위한 테스트 케이스를 정의한다.  
-각 테스트 케이스는 요구사항과 매핑 가능해야 하며, 화면 동작과 데이터 무결성을 함께 검증한다.
-
-* * *
-
-## 2. 테스트 케이스 작성 기준
-
-각 테스트 케이스는 다음 항목으로 구성한다.
-
-* **TC ID**: 고유 식별자
+* 기능 요구사항 검증
     
-* **요구사항 ID**: 연결된 요구사항
+* 데이터 모델 무결성 검증
     
-* **기능 분류**: 기능 영역
+* 캔버스 편집 상호작용 검증
     
-* **테스트 제목**: 검증 목적
-    
-* **사전 조건**: 시작 상태
-    
-* **절차**: 수행 순서
-    
-* **기대 결과**: 합격 기준
-    
-* **우선순위**: Critical / High / Medium / Low
-    
-* **자동화 후보 여부**: Yes / No / Later
+* 성능 및 안정성 확인
     
 
-* * *
-
-## 3. 테스트 케이스 목록
+테스트 케이스는 **요구사항 추적성(Requirement Traceability)**을 유지하도록 작성한다.
 
 * * *
 
-### A. 캔버스 및 타입 전환
+# 2. 테스트 케이스 구성 기준
 
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-CV-001 | FR-001 | 캔버스 | 앱 실행 시 단일 캔버스가 표시된다 | 앱 최초 실행 | 앱 실행 | 빈 단일 캔버스와 기본 도구 UI가 표시된다 | High | Yes |
-| TC-CV-002 | FR-002 | 타입 전환 | 클래스 다이어그램 타입으로 전환할 수 있다 | 앱 실행 상태 | 타입 전환 메뉴에서 Class 선택 | 캔버스 모드가 Class로 전환된다 | High | Yes |
-| TC-CV-003 | FR-002 | 타입 전환 | 유스케이스 다이어그램 타입으로 전환할 수 있다 | 앱 실행 상태 | 타입 전환 메뉴에서 Use Case 선택 | 캔버스 모드가 Use Case로 전환된다 | High | Yes |
-| TC-CV-004 | FR-002 | 타입 전환 | 시퀀스 다이어그램 타입으로 전환할 수 있다 | 앱 실행 상태 | 타입 전환 메뉴에서 Sequence 선택 | 캔버스 모드가 Sequence로 전환된다 | High | Yes |
-| TC-CV-005 | FR-002 | 타입 전환 | 타입 전환 시 현재 타입에 맞는 툴셋이 표시된다 | 앱 실행 상태 | 타입 전환 반복 수행 | 각 타입에 맞는 요소 생성 도구가 표시된다 | Medium | Yes |
-| TC-CV-006 | FR-002 | 타입 전환 | 타입 전환 시 비활성 타입 요소가 숨김 처리되고 복귀 시 복원된다 | Class 모드에서 클래스 요소 1개 생성됨 | Use Case로 전환 → 캔버스 확인 → 다시 Class로 전환 | Use Case에서 클래스 요소는 보이지 않고, Class로 복귀하면 동일 요소가 동일 위치/속성으로 다시 표시된다(데이터 유지) | High | Yes |
+각 테스트 케이스는 다음 항목으로 구성된다.
 
-* * *
-
-### B. 클래스 다이어그램 요소 생성 및 편집
-
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-CL-001 | FR-003 | 요소 생성 | Class 요소를 생성할 수 있다 | Class 모드 | Class 도구 선택 후 캔버스 클릭 | Class 요소가 생성되고 데이터 모델에 추가된다 | High | Yes |
-| TC-CL-002 | FR-003 | 요소 생성 | Interface 요소를 생성할 수 있다 | Class 모드 | Interface 도구 선택 후 캔버스 클릭 | Interface 요소가 생성된다 | High | Yes |
-| TC-CL-003 | FR-003 | 요소 생성 | Abstract Class 요소를 생성할 수 있다 | Class 모드 | Abstract Class 도구 선택 후 캔버스 클릭 | Abstract Class 요소가 생성된다 | Medium | Yes |
-| TC-CL-004 | FR-006 | 속성 편집 | 우측 패널에서 클래스 이름을 수정할 수 있다 | Class 요소 1개 생성됨 | 요소 선택 후 Property Panel에서 이름 수정 | 캔버스 표시명과 내부 데이터 name이 동시에 갱신된다 | High | Yes |
-| TC-CL-005 | FR-006 | 속성 편집 | 클래스로 속성을 추가할 수 있다 | Class 요소 1개 생성됨 | Property Panel에서 attribute 추가 | 클래스 영역에 속성이 표시되고 attributes 배열에 반영된다 | High | Yes |
-| TC-CL-006 | FR-006 | 속성 편집 | 클래스로 메서드를 추가할 수 있다 | Class 요소 1개 생성됨 | Property Panel에서 method 추가 | 클래스 영역에 메서드가 표시되고 methods 배열에 반영된다 | High | Yes |
-| TC-CL-007 | FR-006 | 속성 편집 | 가시성 값을 변경할 수 있다 | 속성 또는 메서드 존재 | visibility를 public/private/protected로 변경 | 표기와 데이터 값이 일치한다 | High | Yes |
-| TC-CL-008 | FR-007 | 스테레오타입 | stereotype을 입력할 수 있다 | Class 요소 1개 생성됨 | Property Panel에 stereotype 입력 | 화면에 stereotype이 표시되고 데이터에 저장된다 | Medium | Yes |
+| 항목 | 설명 |
+| --- | --- |
+| TC ID | 테스트 고유 ID |
+| 요구사항 ID | 대응 요구사항 |
+| 기능 분류 | 기능 영역 |
+| 테스트 제목 | 검증 목적 |
+| 사전 조건 | 테스트 시작 상태 |
+| 절차 | 수행 단계 |
+| 기대 결과 | 성공 기준 |
+| 우선순위 | Critical / High / Medium / Low |
+| 자동화 후보 | Yes / Later / No |
 
 * * *
 
-### C. 유스케이스 다이어그램
+# 3. 테스트 범위
 
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-UC-001 | FR-004 | 요소 생성 | Actor를 생성할 수 있다 | Use Case 모드 | Actor 도구 선택 후 캔버스 클릭 | Actor 요소가 생성된다 | High | Yes |
-| TC-UC-002 | FR-004 | 요소 생성 | Use Case를 생성할 수 있다 | Use Case 모드 | Use Case 도구 선택 후 캔버스 클릭 | Use Case 요소가 생성된다 | High | Yes |
-| TC-UC-003 | FR-004 | 요소 생성 | System Boundary를 생성할 수 있다 | Use Case 모드 | Boundary 도구 선택 후 드래그 | System Boundary가 생성된다 | Medium | Yes |
+MVP 테스트 범위
 
-* * *
-
-### D. 시퀀스 다이어그램
-
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-SQ-001 | FR-005 | 요소 생성 | Lifeline을 생성할 수 있다 | Sequence 모드 | Lifeline 도구로 캔버스 클릭 | Lifeline이 생성된다 | High | Yes |
-| TC-SQ-002 | FR-005 | 요소 생성 | Message를 생성할 수 있다 | Lifeline 2개 존재 | Message 도구로 출발/도착 선택 | Message가 생성된다 | High | Yes |
-| TC-SQ-003 | FR-005 | 요소 생성 | Activation을 생성할 수 있다 | Lifeline 존재 | Activation 도구 선택 후 lifeline에 생성 | Activation이 생성되고 lifeline에 귀속된다 | High | Yes |
-| TC-SQ-004 | FR-005 | 시퀀스 편집 | Activation 길이를 조절할 수 있다 | Activation 존재 | activation 하단 핸들 드래그 | 높이가 변경되고 데이터에도 반영된다 | High | Later |
-| TC-SQ-005 | FR-005 | 시퀀스 편집 | Message가 activation과 시각적으로 정렬된다 | Activation 2개 존재 | Message 생성 | Message 선이 activation 높이에 맞게 정렬된다 | Medium | No |
+Canvas  
+Diagram Mode  
+Element Creation  
+Element Editing  
+Relationships  
+Property Panel  
+Grid & Alignment  
+Undo / Redo  
+Search  
+File Save / Load  
+Export  
+Performance  
+Compatibility
 
 * * *
 
-### E. 관계선 및 Orthogonal Routing
-
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-RL-001 | FR-008 | 관계선 | Association 관계를 생성할 수 있다 | 연결 가능한 요소 2개 존재 | Association 도구로 요소 연결 | Association 선이 생성되고 관계 데이터가 저장된다 | High | Yes |
-| TC-RL-002 | FR-008 | 관계선 | Dependency 관계를 생성할 수 있다 | 연결 가능한 요소 2개 존재 | Dependency 도구로 요소 연결 | 점선 및 화살표가 올바르게 표시된다 | High | Yes |
-| TC-RL-003 | FR-008 | 관계선 | Generalization 관계를 생성할 수 있다 | 연결 가능한 요소 2개 존재 | Generalization 도구로 연결 | 상속 화살표가 표시된다 | High | Yes |
-| TC-RL-004 | FR-008 | 관계선 | Realization 관계를 생성할 수 있다 | 연결 가능한 요소 2개 존재 | Realization 도구로 연결 | 실체화 선이 표시된다 | Medium | Yes |
-| TC-RL-005 | FR-009 | 라우팅 | 관계선이 orthogonal 형태로 그려진다 | 요소 2개 존재 | 관계선 생성 | 선이 직각 꺾은선 형태로 렌더링된다 | High | Yes |
-| TC-RL-006 | FR-009 | 라우팅 | 요소 이동 시 관계선이 자동 갱신된다 | 관계선 생성됨 | 한 요소 드래그 이동 | 선의 anchor와 꺾임 경로가 새 위치에 맞게 갱신된다 | High | Yes |
-| TC-RL-007 | FR-008 | 관계선 | 관계 이름(label)을 입력할 수 있다 | 관계선 존재 | Property Panel 또는 관계 선택 후 label 입력 | 선 근처에 label이 표시된다 | Medium | Later |
+# 4. 테스트 케이스
 
 * * *
 
-### F. 속성 패널
+# A. 캔버스 및 다이어그램 타입
 
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-PP-001 | FR-006 | 속성 패널 | 요소 선택 시 우측 패널에 해당 속성이 표시된다 | 요소 1개 존재 | 요소 클릭 | 해당 요소 타입에 맞는 편집 UI가 패널에 표시된다 | High | Yes |
-| TC-PP-002 | FR-006 | 속성 패널 | 선택 해제 시 우측 패널이 초기 상태로 돌아간다 | 요소 1개 선택됨 | 빈 캔버스 클릭 | 패널이 기본 상태 또는 비선택 상태로 바뀐다 | Medium | Yes |
-| TC-PP-003 | FR-006 | 속성 패널 | 다른 요소를 선택하면 패널 내용이 즉시 전환된다 | 요소 2개 존재 | 요소 A 클릭 후 요소 B 클릭 | 패널 내용이 B의 정보로 바뀐다 | High | Yes |
-
-* * *
-
-### G. 선택 / 이동 / 편집
-
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-ED-001 | FR-010 | 선택 | 요소 단일 선택이 가능하다 | 요소 존재 | 요소 클릭 | 선택 테두리와 패널 반영이 표시된다 | High | Yes |
-| TC-ED-002 | FR-010 | 선택 | 다중 선택이 가능하다 | 요소 2개 이상 존재 | Ctrl+클릭 또는 드래그 선택 | 여러 요소가 동시에 선택된다 | High | Later |
-| TC-ED-003 | FR-010 | 이동 | 선택한 요소를 드래그로 이동할 수 있다 | 요소 존재 | 요소 드래그 | 위치가 변경되고 데이터 좌표가 갱신된다 | High | Yes |
-| TC-ED-004 | FR-010 | 그룹 이동 | 다중 선택 요소를 함께 이동할 수 있다 | 다중 선택 상태 | 드래그 이동 | 선택한 모든 요소가 함께 이동한다 | Medium | Later |
-| TC-ED-005 | FR-010 | 편집 | 요소를 복제할 수 있다 | 요소 존재 | 요소 선택 후 Ctrl+D | 동일 속성의 새 요소가 생성된다 | Medium | Yes |
-| TC-ED-006 | FR-010 | 편집 | 요소를 삭제할 수 있다 | 요소 존재 | 요소 선택 후 Delete | 요소가 제거되고 데이터에서도 삭제된다 | High | Yes |
+| TC ID | 요구사항 | 기능 | 테스트 제목 | 절차 | 기대 결과 |
+| --- | --- | --- | --- | --- | --- |
+| TC-CV-001 | FR-001 | Canvas | 앱 실행 시 단일 캔버스 표시 | 앱 실행 | 단일 캔버스와 기본 UI 표시 |
+| TC-CV-002 | FR-002 | Mode | Class 모드 전환 | Class 선택 | 캔버스 모드 변경 |
+| TC-CV-003 | FR-002 | Mode | Use Case 모드 전환 | UseCase 선택 | 모드 변경 |
+| TC-CV-004 | FR-002 | Mode | Sequence 모드 전환 | Sequence 선택 | 모드 변경 |
+| TC-CV-005 | FR-002 | Mode | 타입별 툴셋 변경 | 모드 전환 반복 | 해당 타입 툴 표시 |
+| TC-CV-006 | FR-002 | Mode | 타입 전환 시 요소 숨김 처리 | Class→UseCase | 클래스 요소 숨김 |
+| TC-CV-007 | FR-002 | Mode | 타입 복귀 시 요소 복원 | UseCase→Class | 기존 요소 복원 |
+| TC-CV-008 | FR-002 | Mode | 타입 전환 시 선택 상태 초기화 | 요소 선택 → 타입 변경 | 선택 해제 |
 
 * * *
 
-### H. Grid / Snap / 정렬
+# B. 클래스 다이어그램
 
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-GR-001 | FR-011 | Grid | Grid를 표시할 수 있다 | 앱 실행 | Grid 표시 옵션 활성화 | 캔버스에 grid가 표시된다 | Medium | Yes |
-| TC-GR-002 | FR-011 | Snap | Grid Snap이 적용된다 | Grid Snap 활성화, 요소 존재 | 요소 드래그 이동 | 요소 좌표가 grid 간격에 맞춰 정렬된다 | Medium | Later |
-| TC-GR-003 | FR-011 | 정렬 | 여러 요소를 좌측 정렬할 수 있다 | 요소 3개 존재 | 다중 선택 후 좌측 정렬 실행 | 좌측 x좌표가 동일해진다 | Medium | Yes |
+| TC ID | 요구사항 | 기능 | 테스트 제목 |
+| --- | --- | --- | --- |
+| TC-CL-001 | FR-003 | 생성 | Class 생성 |
+| TC-CL-002 | FR-003 | 생성 | Interface 생성 |
+| TC-CL-003 | FR-003 | 생성 | Abstract Class 생성 |
 
-* * *
+속성 편집
 
-### I. Undo / Redo
-
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-HS-001 | FR-012 | 히스토리 | 요소 생성 작업을 Undo 할 수 있다 | 요소 생성됨 | Ctrl+Z | 생성 요소가 제거된다 | High | Yes |
-| TC-HS-002 | FR-012 | 히스토리 | Undo 이후 Redo 할 수 있다 | Undo 수행됨 | Ctrl+Y | 제거된 요소가 동일 상태로 복원된다 | High | Yes |
-| TC-HS-003 | FR-012 | 히스토리 | 속성 변경을 Undo 할 수 있다 | 요소 이름 변경 수행 | Ctrl+Z | 이전 이름으로 복원된다 | High | Yes |
-| TC-HS-004 | FR-012 | 히스토리 | 관계선 생성 작업을 Undo 할 수 있다 | 관계선 생성됨 | Ctrl+Z | 관계선이 제거된다 | High | Yes |
-| TC-HS-005 | FR-012 | 히스토리 | Undo 후 새 작업 시 Redo 스택이 초기화된다 | Undo 수행됨 | 새 요소 생성 후 Ctrl+Y | 이전 작업은 Redo되지 않는다 | High | Yes |
-| TC-HS-006 | FR-012 | 히스토리 | 타입 전환 이후 Undo는 마지막 편집 작업을 되돌리고, 타입 전환 자체는 히스토리에 영향을 주지 않는다 | 요소 편집 1회 수행 후 타입 전환 수행 | 타입 전환 → Ctrl+Z | 마지막 편집 작업이 되돌려지고, 현재 diagramType은 유지된다 | Medium | Later |
+| TC ID | 요구사항 | 기능 | 테스트 제목 |
+| --- | --- | --- | --- |
+| TC-CL-004 | FR-006 | 속성 | 클래스 이름 수정 |
+| TC-CL-005 | FR-006 | 속성 | Attribute 추가 |
+| TC-CL-006 | FR-006 | 속성 | Method 추가 |
+| TC-CL-007 | FR-006 | 속성 | Visibility 변경 |
+| TC-CL-008 | FR-007 | 확장 | stereotype 입력 |
 
 * * *
 
-### J. 검색
+# C. 유스케이스 다이어그램
 
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-SR-001 | FR-013 | 검색 | 클래스 이름으로 검색할 수 있다 | 대상 클래스 존재 | 검색창에 이름 입력 | 검색 결과가 표시되고 캔버스에서 하이라이트된다 | Medium | Yes |
-| TC-SR-002 | FR-013 | 검색 | 속성 이름으로 검색할 수 있다 | 대상 속성 존재 | 검색창에 속성명 입력 | 해당 클래스를 찾을 수 있다 | Medium | Yes |
-| TC-SR-003 | FR-013 | 검색 | 검색 결과가 없을 때 빈 결과를 표시한다 | 검색 대상 없음 | 존재하지 않는 이름 입력 | 결과 없음 메시지 또는 0건 표시 | Low | Yes |
-
-* * *
-
-### K. 저장 / 불러오기 / 자동 저장
-
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-FL-001 | FR-014 | 저장 | 프로젝트를 JSON으로 저장할 수 있다 | 요소와 관계가 존재 | Save 실행 | JSON 파일이 생성된다 | High | Yes |
-| TC-FL-002 | FR-015 | 불러오기 | JSON 파일을 불러와 프로젝트를 복원할 수 있다 | 유효한 JSON 파일 존재 | Load/Import 실행 | 요소, 관계, 위치, 속성이 복원된다 | High | Yes |
-| TC-FL-003 | FR-015 | 무결성 | Export 후 Import 시 데이터 손실이 없다 | 복합 프로젝트 존재 | JSON export 후 새 세션에서 import | 요소 수/관계 수/속성이 동일하다 | Critical | Yes |
-| TC-FL-004 | FR-016 | 자동 저장 | 편집 후 자동 저장이 수행된다 | 편집 가능한 상태 | 요소 수정 후 30초 대기 | 로컬 스토리지에 최신 상태가 저장된다 | High | Later |
-| TC-FL-005 | FR-016 | 복구 | 새로고침 후 자동 저장 데이터를 복구할 수 있다 | 자동 저장 데이터 존재 | 페이지 새로고침 후 복구 수행 | 마지막 자동 저장 상태가 복원된다 | High | Later |
-| TC-FL-006 | FR-015 | 예외 처리 | 잘못된 JSON import 시 오류 메시지를 표시한다 | 잘못된 JSON 준비 | Import 실행 | 오류 메시지를 표시하고 기존 상태는 유지된다 | High | Yes |
+| TC ID | 요구사항 | 기능 | 테스트 |
+| --- | --- | --- | --- |
+| TC-UC-001 | FR-004 | 생성 | Actor 생성 |
+| TC-UC-002 | FR-004 | 생성 | Use Case 생성 |
+| TC-UC-003 | FR-004 | 생성 | System Boundary 생성 |
 
 * * *
 
-### L. Export
+# D. 시퀀스 다이어그램
 
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-EX-001 | FR-017 | Export | PNG로 export할 수 있다 | 프로젝트 존재 | PNG export 실행 | PNG 파일이 생성된다 | High | Yes |
-| TC-EX-002 | FR-017 | Export | SVG로 export할 수 있다 | 프로젝트 존재 | SVG export 실행 | SVG 파일이 생성된다 | Medium | Yes |
-| TC-EX-003 | FR-018 | Export | PDF를 이미지 기반으로 export할 수 있다 | 프로젝트 존재 | PDF export 실행 | PDF 파일이 생성되고 현재 캔버스 이미지가 포함된다 | High | Yes |
+| TC ID | 요구사항 | 기능 | 테스트 |
+| --- | --- | --- | --- |
+| TC-SQ-001 | FR-005 | 생성 | Lifeline 생성 |
+| TC-SQ-002 | FR-005 | 생성 | Message 생성 |
+| TC-SQ-003 | FR-005 | 생성 | Activation 생성 |
+| TC-SQ-004 | FR-005 | 편집 | Activation 길이 조절 |
+| TC-SQ-005 | FR-005 | 편집 | Message 정렬 |
 
 * * *
 
-### M. 성능 / 안정성 / 호환성
+# E. 관계선
 
-| TC ID | 요구사항 ID | 기능 분류 | 테스트 제목 | 사전 조건 | 절차 | 기대 결과 | 우선순위 | 자동화 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TC-PF-001 | NFR-001 | 성능 | 요소 300개, 관계 500개 환경에서 팬/줌 성능이 유지된다 | 성능 샘플 데이터 준비 | 팬/줌 반복 조작 | 체감 지연이 크지 않고 목표 성능을 유지한다 | High | Later |
-| TC-PF-002 | NFR-002 | 성능 | 일반 편집 반응 시간이 100ms 이내이다 | 일반 프로젝트 로드 | 이동/선택/속성 편집 수행 | 주요 반응이 즉시 이루어진다 | High | Later |
-| TC-PF-003 | NFR-003 | 성능 | JSON import/export가 1초 이내 수행된다 | 기준 샘플 데이터 준비 | import/export 반복 | 수행 시간이 목표 내이다 | High | Yes |
-| TC-ST-001 | NFR-004 | 안정성 | 장시간 편집 후에도 앱이 비정상 종료되지 않는다 | 30분 이상 편집 수행 | 요소 생성/이동/삭제 반복 | 크래시 없이 동작한다 | Medium | No |
-| TC-CP-001 | NFR-005 | 호환성 | Chrome에서 주요 기능이 동작한다 | Chrome 실행 | 핵심 기능 smoke test 수행 | 정상 동작 | High | No |
-| TC-CP-002 | NFR-005 | 호환성 | Edge에서 주요 기능이 동작한다 | Edge 실행 | 핵심 기능 smoke test 수행 | 정상 동작 | High | No |
-| TC-CP-003 | NFR-005 | 호환성 | Firefox에서 주요 기능이 동작한다 | Firefox 실행 | 핵심 기능 smoke test 수행 | 정상 동작 | Medium | No |
+| TC ID | 요구사항 | 기능 | 테스트 |
+| --- | --- | --- | --- |
+| TC-RL-001 | FR-008 | 관계 | Association 생성 |
+| TC-RL-002 | FR-008 | 관계 | Dependency 생성 |
+| TC-RL-003 | FR-008 | 관계 | Generalization 생성 |
+| TC-RL-004 | FR-008 | 관계 | Realization 생성 |
+| TC-RL-005 | FR-009 | 라우팅 | Orthogonal routing |
+| TC-RL-006 | FR-009 | 라우팅 | 요소 이동 시 선 갱신 |
+| TC-RL-007 | FR-008 | 관계 | 관계 label 입력 |
+
+* * *
+
+# F. Property Panel
+
+| TC ID | 요구사항 | 기능 | 테스트 |
+| --- | --- | --- | --- |
+| TC-PP-001 | FR-006 | 패널 | 요소 선택 시 패널 표시 |
+| TC-PP-002 | FR-006 | 패널 | 선택 해제 시 패널 초기화 |
+| TC-PP-003 | FR-006 | 패널 | 선택 변경 시 패널 갱신 |
+
+* * *
+
+# G. 편집 (Selection / Move / Resize)
+
+| TC ID | 요구사항 | 기능 | 테스트 |
+| --- | --- | --- | --- |
+| TC-ED-001 | FR-010 | 선택 | 단일 선택 |
+| TC-ED-002 | FR-010 | 선택 | 다중 선택 |
+| TC-ED-003 | FR-010 | 이동 | 요소 드래그 이동 |
+| TC-ED-004 | FR-010 | 이동 | 그룹 이동 |
+| TC-ED-005 | FR-010 | 편집 | 요소 복제 |
+| TC-ED-006 | FR-010 | 편집 | 요소 삭제 |
+| TC-ED-007 | FR-003 | 생성 | 연속 생성 offset 적용 |
+| TC-ED-008 | FR-010 | 이동 | 드래그 이동 좌표 갱신 |
+| TC-ED-009 | FR-010 | 관계 | 이동 시 관계선 갱신 |
+| TC-ED-010 | FR-010 | 편집 | 속성 재편집 |
+| TC-ED-011 | FR-010 | 크기 | Resize 기능 |
+| TC-ED-012 | FR-010 | 복제 | 복제 offset 적용 |
+| TC-ED-013 | FR-010 | HitTest | 요소 클릭 시 선택 |
+| TC-ED-014 | FR-010 | HitTest | Resize Handle 우선 선택 |
+| TC-ED-015 | FR-010 | Interaction | Drag threshold 적용 |
+
+* * *
+
+# H. Grid / 정렬
+
+| TC ID | 요구사항 | 기능 |
+| --- | --- | --- |
+| TC-GR-001 | FR-011 | Grid 표시 |
+| TC-GR-002 | FR-011 | Grid Snap |
+| TC-GR-003 | FR-011 | 좌측 정렬 |
+
+* * *
+
+# I. Undo / Redo
+
+| TC ID | 요구사항 | 테스트 |
+| --- | --- | --- |
+| TC-HS-001 | FR-012 | 생성 Undo |
+| TC-HS-002 | FR-012 | Redo |
+| TC-HS-003 | FR-012 | 속성 변경 Undo |
+| TC-HS-004 | FR-012 | 관계선 Undo |
+| TC-HS-005 | FR-012 | Redo 스택 초기화 |
+| TC-HS-006 | FR-012 | 타입 전환 영향 없음 |
+
+* * *
+
+# J. 검색
+
+| TC ID | 요구사항 | 테스트 |
+| --- | --- | --- |
+| TC-SR-001 | FR-013 | 클래스 이름 검색 |
+| TC-SR-002 | FR-013 | 속성 검색 |
+| TC-SR-003 | FR-013 | 검색 결과 없음 |
+
+* * *
+
+# K. 파일
+
+| TC ID | 요구사항 | 테스트 |
+| --- | --- | --- |
+| TC-FL-001 | FR-014 | JSON 저장 |
+| TC-FL-002 | FR-015 | JSON 불러오기 |
+| TC-FL-003 | FR-015 | Export → Import 무결성 |
+| TC-FL-004 | FR-016 | 자동 저장 |
+| TC-FL-005 | FR-016 | 자동 복구 |
+| TC-FL-006 | FR-015 | 잘못된 JSON 처리 |
+
+* * *
+
+# L. Export
+
+| TC ID | 요구사항 | 테스트 |
+| --- | --- | --- |
+| TC-EX-001 | FR-017 | PNG Export |
+| TC-EX-002 | FR-017 | SVG Export |
+| TC-EX-003 | FR-018 | PDF Export |
+
+* * *
+
+# M. 성능
+
+| TC ID | 요구사항 | 테스트 |
+| --- | --- | --- |
+| TC-PF-001 | NFR-001 | 300 요소 + 500 관계 성능 |
+| TC-PF-002 | NFR-002 | 편집 반응 < 100ms |
+| TC-PF-003 | NFR-003 | JSON I/O < 1s |
+
+* * *
+
+# N. 안정성 / 호환성
+
+| TC ID | 요구사항 | 테스트 |
+| --- | --- | --- |
+| TC-ST-001 | NFR-004 | 장시간 편집 안정성 |
+| TC-CP-001 | NFR-005 | Chrome |
+| TC-CP-002 | NFR-005 | Edge |
+| TC-CP-003 | NFR-005 | Firefox |
+
+* * *
+
+# 테스트 규모
+
+총 테스트 케이스
+
+약 70개
+
+테스트 분포
+
+Canvas / Mode        8  
+Class Diagram        8  
+UseCase              3  
+Sequence             5  
+Relationships        7  
+Property Panel       3  
+Editing             15  
+Grid / Alignment     3  
+Undo / Redo          6  
+Search               3  
+File I/O             6  
+Export               3  
+Performance          3  
+Stability / Compat   4
+
+* * *
+
+# 최종 테스트 전략
+
+MVP 테스트 우선순위
+
+Critical  
+  File I/O  
+  Undo/Redo  
+  Element Move  
+  Relationship Update  
+  
+High  
+  Editing  
+  Property Panel  
+  Mode Switching  
+  
+Medium  
+  Grid / Alignment  
+  Search

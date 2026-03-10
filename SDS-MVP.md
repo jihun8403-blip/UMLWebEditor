@@ -1,168 +1,168 @@
-* * *
-
-# UML Web Editor
-
-## System Design Specification (SDS) – MVP
-
-* * *
-
 # 1. 시스템 개요
 
 UML Web Editor는 브라우저에서 실행되는 **정적 웹 기반 UML 다이어그램 편집기**이다.
 
-본 시스템은 UML 요소를 단순 시각 객체가 아니라 **구조화된 데이터 모델**로 관리하며, 캔버스 렌더링 엔진과 데이터 모델을 분리한 아키텍처를 사용한다.
+설치 없이 브라우저에서 동작하며 UML 다이어그램을 생성, 편집, 저장, 내보내기 할 수 있다.
+
+시스템은 UML 요소를 단순 그래픽이 아니라 **데이터 모델 기반 객체**로 관리하며, 캔버스 렌더링 엔진과 상태 관리 계층을 분리한다.
 
 핵심 목표
 
 * UML 요소의 데이터 기반 관리
     
-* 캔버스 기반 편집 환경 제공
+* 캔버스 기반 편집 환경
     
-* JSON 기반 프로젝트 저장/불러오기
+* JSON Import / Export
     
-* 이미지/PDF export 지원
+* PNG / SVG / PDF export
     
 
 * * *
 
 # 2. 전체 아키텍처
 
-시스템은 다음 4개 계층으로 구성된다.
+시스템은 다음 계층 구조로 구성된다.
 
 UI Layer  
- │  
+│  
 Canvas Engine  
- │  
+│  
+Interaction Layer  
+│  
 Application State  
- │  
+│  
 Data Model
 
-각 계층 역할
+* * *
 
-### UI Layer
+# 2.1 UI Layer
 
-사용자 인터페이스
+사용자 인터페이스 구성
 
 * Toolbar
     
-* Property Panel
+* CanvasView
     
-* Canvas View
+* PropertyPanel
     
-* Export Dialog
+* DiagramSwitcher
+    
+* ExportDialog
     
 
-### Canvas Engine
+역할
 
-그래픽 렌더링 및 사용자 상호작용 처리
+* 사용자 입력 전달
+    
+* 상태 표시
+    
+* 편집 UI 제공
+    
+
+* * *
+
+# 2.2 Canvas Engine
+
+그래픽 렌더링 담당
+
+역할
 
 * 요소 렌더링
     
-* 드래그
+* 관계선 렌더링
     
-* 선택
+* Grid 표시
     
-* 관계선 연결
-    
-* 줌 / 팬
+* Selection Overlay 표시
     
 
-### Application State
+Canvas 기반 렌더링을 사용한다.
+
+* * *
+
+# 2.3 Interaction Layer
+
+사용자 입력 처리
+
+주요 구성
+
+* InteractionController
+    
+* SelectionManager
+    
+* MoveController
+    
+* ResizeController
+    
+* HitTestEngine
+    
+
+역할
+
+* 마우스 이벤트 처리
+    
+* 편집 동작 결정
+    
+* 상태 업데이트 트리거
+    
+
+* * *
+
+# 2.4 Application State
 
 편집 상태 관리
 
-* 선택 상태
-    
-* 히스토리 관리
-    
-* undo/redo
-    
-* 캔버스 상태
-
-
-### Diagram Type 전환 정책 (MVP)
-
-MVP에서 다이어그램 타입 전환은 **요소 변환 없이 숨김 처리**로 동작한다.
-
-- `diagramType`은 캔버스의 현재 모드를 의미한다.
-- 요소/관계 데이터는 삭제/변환하지 않고 유지한다.
-- 렌더링 시점에 `diagramType`에 맞는 요소/관계만 필터링하여 그린다.
-
-예: `diagramType=usecase`일 때 클래스 요소는 데이터에 남아있지만 캔버스에는 표시되지 않는다.
-    
-
-### Data Model
-
-UML 데이터 구조
+구성
 
 * elements
     
 * relationships
     
-* diagram metadata
+* selection state
     
+* viewport
+    
+* history stack
+    
+
+상태 관리 라이브러리
+
+Zustand
+
+* * *
+
+# 2.5 Data Model
+
+UML 데이터 구조 정의
+
+구성
+
+Project  
+ ├ metadata  
+ ├ diagramType  
+ ├ elements[]  
+ └ relationships[]
 
 * * *
 
 # 3. 기술 스택
 
-## Frontend Framework
-
-추천
+Frontend Framework
 
 React + TypeScript
 
-이유
-
-* 상태 관리 용이
-    
-* 컴포넌트 구조 명확
-    
-* 대규모 UI 관리 용이
-    
-
-* * *
-
-## Canvas Rendering
-
-추천
+Canvas Rendering
 
 HTML5 Canvas
 
-이유
-
-* 요소 수가 많을 때 DOM보다 효율적
-    
-* 드래그 성능 우수
-    
-* 그래픽 제어 유연
-    
-
-* * *
-
-## State Management
-
-추천
+State Management
 
 Zustand
 
-이유
+Export
 
-* 가벼움
-    
-* undo/redo 구현 용이
-    
-* React 친화적
-    
+jsPDF
 
-* * *
-
-### Export (MVP)
-
-- PNG: Canvas를 `toBlob()`/`toDataURL()`로 이미지화하여 다운로드
-- PDF: Canvas를 PNG로 변환 후 `jsPDF.addImage()`로 PDF 생성(이미지 기반)
-- SVG: 데이터 모델(`elements/relationships`)을 기반으로 별도의 SVG 직렬화 경로를 제공
-  - MVP에서는 “표현 가능한 도형/선/텍스트” 범위 내에서만 지원(고급 스타일은 V1+)
 * * *
 
 # 4. 주요 컴포넌트 구조
@@ -176,71 +176,20 @@ App
 
 * * *
 
-## Toolbar
-
-기능
-
-* 요소 생성
-    
-* 관계선 선택
-    
-* 정렬
-    
-* 줌
-    
-
-* * *
-
-## CanvasView
-
-역할
-
-* 캔버스 렌더링
-    
-* 사용자 이벤트 처리
-    
-
-이벤트
-
-* mouse down
-    
-* mouse move
-    
-* mouse up
-    
-* wheel
-    
-
-* * *
-
-## PropertyPanel
-
-우측 패널
-
-기능
-
-* 요소 속성 편집
-    
-* 클래스 속성/메서드 관리
-    
-* stereotype 입력
-    
-
-* * *
-
 # 5. 데이터 모델
 
-프로젝트 구조
+## 5.1 Project
 
-Project  
- ├ metadata  
- ├ diagramType  
- ├ elements[]  
- └ relationships[]
+Project {  
+  metadata  
+  diagramType  
+  elements[]  
+  relationships[]  
+}
 
 * * *
 
-## Element 구조
+# 5.2 Element
 
 Element {  
   id: string  
@@ -264,7 +213,7 @@ Element {
 
 * * *
 
-## Attribute 구조
+# 5.3 Attribute
 
 Attribute {  
   name: string  
@@ -274,7 +223,7 @@ Attribute {
 
 * * *
 
-## Method 구조
+# 5.4 Method
 
 Method {  
   name: string  
@@ -285,7 +234,7 @@ Method {
 
 * * *
 
-## Relationship 구조
+# 5.5 Relationship
 
 Relationship {  
   id: string  
@@ -294,16 +243,76 @@ Relationship {
   sourceId: string  
   targetId: string  
   
-  label?: string  
+  sourceAnchor?: string  
+  targetAnchor?: string  
   
   routing: {  
     points: Point[]  
   }  
+  
+  label?: string  
 }
 
 * * *
 
-# 6. 캔버스 렌더링 엔진
+# 5.6 Sequence Diagram Model
+
+### Lifeline
+
+Lifeline {  
+  elementId  
+  actor?: boolean  
+}
+
+### Message
+
+Message {  
+  id  
+  sourceId  
+  targetId  
+  messageType  
+  yPosition  
+}
+
+### Activation
+
+Activation {  
+  id  
+  lifelineId  
+  startY  
+  endY  
+  depth  
+}
+
+* * *
+
+# 6. Placement Manager
+
+요소 생성 위치 정책 관리
+
+역할
+
+* 연속 생성 offset
+    
+* viewport 보정
+    
+* duplicate offset
+    
+
+기본 offset
+
+{ x: 24, y: 24 }
+
+생성 알고리즘
+
+if no previous element  
+   place at viewport center  
+else  
+   place at lastPosition + offset
+
+* * *
+
+# 7. Canvas Rendering Engine
 
 렌더링 흐름
 
@@ -313,60 +322,38 @@ Render Queue
    ↓  
 Canvas Draw
 
-* * *
+렌더링 순서
 
-## 렌더링 순서
-
-1. Grid
-    
-2. Relationship
-    
-3. Elements
-    
-4. Selection Box
-    
-5. Interaction Overlay
-    
+1 Grid  
+2 Relationships  
+3 Elements  
+4 Selection Overlay  
+5 Resize Handles  
+6 Interaction Overlay
 
 * * *
 
-# 7. Orthogonal Routing (MVP)
+# 8. Hit Test Engine
 
-관계선은 직각 꺾은선 방식으로 구현한다.
+캔버스 좌표 기반 요소 탐지
 
-기본 알고리즘
+기능
 
-source center  
-   ↓  
-horizontal line  
-   ↓  
-vertical line  
-   ↓  
-target center
+hitElement(x, y)  
+hitResizeHandle(x, y)  
+hitRelationship(x, y)
 
-예시
+우선순위
 
-┌──────┐  
-│ A    │  
-└──┐   │  
-   │  
-   └───────►  
-        ┌──────┐  
-        │ B    │  
-        └──────┘
-
-MVP 제한
-
-* 장애물 회피 없음
-    
-* 자동 경로 재계산만 수행
-    
+1 Resize Handle  
+2 Element  
+3 Relationship
 
 * * *
 
-# 8. 선택 시스템
+# 9. Selection Manager
 
-선택 상태
+선택 상태 관리
 
 SelectionState {  
   selectedElementIds: string[]  
@@ -378,48 +365,46 @@ SelectionState {
     
 * multi select
     
-* drag selection
+* drag select
     
+* clear selection
+    
+
+API
+
+selectElement(id)  
+toggleElement(id)  
+clearSelection()  
+selectArea(rect)
 
 * * *
 
-# 9. Undo / Redo 시스템
+# 10. Interaction Controller
 
-히스토리는 **Command Pattern** 기반으로 구현한다.
+사용자 입력 기반 편집 상태 관리
 
-구조
+상태 정의
 
-History  
- ├ undoStack[]  
- └ redoStack[]
+type InteractionMode =  
+  | "idle"  
+  | "selecting"  
+  | "dragging-element"  
+  | "dragging-selection"  
+  | "resizing-element"  
+  | "connecting-relationship"  
+  | "panning"
 
-Command 구조
-
-Command {  
-  execute()  
-  undo()  
-}
-
-예
-
-* CreateElementCommand
-    
-* MoveElementCommand
-    
-* DeleteElementCommand
-    
-* UpdatePropertyCommand
-    
-
-* * *
-
-# 10. 이벤트 처리 흐름
-
-사용자 이벤트 흐름
+이벤트 흐름
 
 Mouse Event  
    ↓  
-Interaction Controller  
+HitTestEngine  
+   ↓  
+InteractionController  
+   ↓  
+SelectionManager  
+   ↓  
+Editing Controller  
    ↓  
 State Update  
    ↓  
@@ -427,81 +412,152 @@ Canvas Re-render
 
 * * *
 
-# 11. JSON 저장 구조
+# 11. Move Controller
 
-저장 예시
+요소 이동 처리
+
+구조
+
+MoveController {  
+  startDrag(elementIds, startPosition)  
+  updateDrag(mousePosition)  
+  endDrag()  
+}
+
+동작
+
+mousedown  
+  → hit test  
+mousemove  
+  → 위치 업데이트  
+mouseup  
+  → MoveElementCommand 실행
+
+* * *
+
+# 12. Resize Controller
+
+요소 크기 조절 처리
+
+구조
+
+ResizeController {  
+  startResize(elementId, handleType)  
+  updateResize(mousePosition)  
+  endResize()  
+}
+
+Resize Handle
+
+NW  
+NE  
+SW  
+SE
+
+제약
+
+* 최소 크기 존재
+    
+* 텍스트 영역 보장
+    
+
+* * *
+
+# 13. Undo / Redo 시스템
+
+Command Pattern 기반
+
+History  
+ ├ undoStack[]  
+ └ redoStack[]
+
+Command Interface
+
+Command {  
+  execute()  
+  undo()  
+}
+
+* * *
+
+# 13.1 Command Catalog
+
+지원 Command
+
+CreateElementCommand  
+MoveElementCommand  
+ResizeElementCommand  
+DeleteElementCommand  
+DuplicateElementCommand  
+UpdatePropertyCommand  
+CreateRelationshipCommand  
+DeleteRelationshipCommand
+
+* * *
+
+# 14. JSON 저장 구조
+
+예시
 
 {  
   "metadata": {  
-    "version": "0.1",  
-    "created": "2026-03-10"  
+    "version": "0.1"  
   },  
-  
   "diagramType": "class",  
-  
-  "elements": [  
-    {  
-      "id": "class1",  
-      "type": "class",  
-      "name": "User",  
-      "position": { "x": 200, "y": 100 }  
-    }  
-  ],  
-  
+  "elements": [],  
   "relationships": []  
 }
 
 * * *
 
-# 12. Export 시스템
+# 15. Export 시스템
 
-## PNG / SVG
+## PNG Export
 
-방법
-
-Canvas → Image Export
+Canvas → toBlob() → Download
 
 * * *
 
-## PDF (MVP)
+## SVG Export
 
-흐름
+SVG는 Canvas raster가 아닌  
+**Data Model 기반 벡터 직렬화 방식**으로 생성한다.
+
+elements → SVG shapes  
+relationships → SVG paths  
+text → SVG text
+
+* * *
+
+## PDF Export
 
 Canvas → PNG → jsPDF
 
 * * *
 
-# 13. 성능 설계
+# 16. 성능 설계
 
-최적화 전략
+Dirty Rendering
 
-### Dirty Rendering
-
-전체 캔버스 대신 변경된 영역만 다시 렌더링
+변경된 영역만 재렌더링
 
 * * *
 
-### Spatial Index
-
-요소 선택 성능 향상을 위해
-
-QuadTree
-
-사용 고려
-
-* * *
-
-### Render Throttling
-
-mousemove 이벤트에서
+Render Throttling
 
 requestAnimationFrame
 
-사용
+* * *
+
+Spatial Index
+
+QuadTree
+
+요소 선택 성능 향상
 
 * * *
 
-# 14. 오류 처리
+# 17. 오류 처리
 
 주요 오류
 
@@ -514,56 +570,55 @@ requestAnimationFrame
 
 대응
 
-* 사용자 알림
+* 사용자 경고
     
-* rollback
+* rollback 처리
     
 
 * * *
 
-# 15. 보안 고려사항
+# 18. 보안 고려사항
 
-로컬 실행 기반이므로 보안 위험은 낮다.
+로컬 실행 기반
 
-주의
+보안 정책
 
-* JSON Import 시 스크립트 삽입 방지
+* JSON Import 검증
     
 * 파일 크기 제한
     
-
-* * *
-
-# 16. 로그 및 디버깅
-
-개발 모드에서
-
-debug logger
-
-기록
-
-* element 생성
-    
-* relationship 생성
-    
-* undo/redo 이벤트
+* 스크립트 삽입 방지
     
 
 * * *
 
-# 17. 향후 확장 설계
+# 19. 로그 및 디버깅
 
-아키텍처는 다음 확장을 고려한다.
+개발 모드 로그
 
-* Smart routing
+element creation  
+relationship creation  
+move  
+resize  
+undo/redo
+
+* * *
+
+# 20. 향후 확장
+
+다음 기능을 확장 가능하도록 설계
+
+* Smart Routing
     
-* Code generation
+* Code Generation
     
-* Reverse engineering
+* Reverse Engineering
     
-* XMI export/import
+* XMI Import / Export
     
-* Git integration
+* Git Integration
     
-* Collaborative editing
+* Collaborative Editing
     
+
+* * *
