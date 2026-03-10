@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { DiagramType, Project, UmlElement, Viewport } from './types';
 import { nextId } from './id';
-import { orthogonalRoute } from './routing';
+import { recomputeAllRouting, recomputeRoutingForElementIds } from './routing';
 import {
   type Command,
   CreateElementCommand,
@@ -85,7 +85,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   execute(cmd, record = true) {
     set((s) => {
-      const nextProject = cmd.execute(s.project);
+      const nextProject = recomputeAllRouting(cmd.execute(s.project));
       const undo = record ? [...s.history.undo, cmd] : s.history.undo;
       return {
         project: nextProject,
@@ -102,7 +102,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!last) return;
     set((s) => {
       const undo = s.history.undo.slice(0, -1);
-      const project = last.undo(s.project);
+      const project = recomputeAllRouting(last.undo(s.project));
       return {
         project,
         history: { undo, redo: [...s.history.redo, last] },
@@ -115,7 +115,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!last) return;
     set((s) => {
       const redo = s.history.redo.slice(0, -1);
-      const project = last.execute(s.project);
+      const project = recomputeAllRouting(last.execute(s.project));
       return {
         project,
         history: { undo: [...s.history.undo, last], redo },
@@ -160,7 +160,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const elements = s.project.elements.map((e) =>
         ids.includes(e.id) ? { ...e, position: { x: e.position.x + dx, y: e.position.y + dy } } : e,
       );
-      return { project: { ...s.project, elements } };
+      const project = { ...s.project, elements };
+      const updated = recomputeRoutingForElementIds(project, new Set(ids));
+      return { project: updated };
     });
   },
 
@@ -196,19 +198,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (els.length < 2) return;
     const a = els[0];
     const b = els[1];
-    const src = { x: a.position.x + a.size.width, y: a.position.y + a.size.height / 2 };
-    const tgt = { x: b.position.x, y: b.position.y + b.size.height / 2 };
-    const points = orthogonalRoute(src, tgt);
-
     const rel = {
       id: nextId('rel'),
       diagramType: project.diagramType,
       type: 'association' as const,
       sourceId: a.id,
       targetId: b.id,
-      routing: { points },
+      routing: { points: [] },
     };
 
-    get().execute(new CreateRelationshipCommand(rel));
+    // routing은 현재 요소 위치 기준으로 즉시 계산
+    const nextProject = recomputeAllRouting({ ...project, relationships: [...project.relationships, rel] });
+    // execute로 기록하면 recomputeAllRouting이 한번 더 적용되지만 부작용은 없음
+    get().execute(
+      new CreateRelationshipCommand({
+        ...rel,
+        routing: nextProject.relationships[nextProject.relationships.length - 1]!.routing,
+      }),
+    );
   },
 }));

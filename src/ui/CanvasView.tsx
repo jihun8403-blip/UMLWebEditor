@@ -94,6 +94,14 @@ export function CanvasView() {
           else ctx.lineTo(sp.x, sp.y);
         });
         ctx.stroke();
+
+        if (rel.label) {
+          const midIdx = Math.floor(routing.points.length / 2);
+          const mp = worldToScreen(project.viewport, routing.points[midIdx]!);
+          ctx.fillStyle = '#334155';
+          ctx.font = `${12 * project.viewport.scale}px system-ui`;
+          ctx.fillText(rel.label, mp.x + 6 * project.viewport.scale, mp.y - 6 * project.viewport.scale);
+        }
       }
 
       // elements
