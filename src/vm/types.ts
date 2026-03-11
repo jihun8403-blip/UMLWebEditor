@@ -21,6 +21,26 @@ export type ElementType =
   | 'activation'
   | 'message';
 
+export type Visibility = 'public' | 'private' | 'protected';
+
+export type Attribute = {
+  name: string;
+  type: string;
+  visibility: Visibility;
+};
+
+export type Parameter = {
+  name: string;
+  type: string;
+};
+
+export type Method = {
+  name: string;
+  returnType: string;
+  visibility: Visibility;
+  parameters: Parameter[];
+};
+
 export type UmlElement = {
   id: string;
   diagramType: DiagramType;
@@ -29,6 +49,10 @@ export type UmlElement = {
   stereotype?: string;
   position: Point;
   size: { width: number; height: number };
+  attributes?: Attribute[];
+  methods?: Method[];
+  showAttributes?: boolean;
+  showMethods?: boolean;
 };
 
 export type RelationshipType = 'association' | 'dependency' | 'generalization' | 'realization';

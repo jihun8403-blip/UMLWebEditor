@@ -1,24 +1,36 @@
 import { create } from 'zustand';
-import type { DiagramType, Project, UmlElement, Viewport } from './types';
+import type { DiagramType, Project, RelationshipType, UmlElement, Viewport } from './types';
 import { nextId } from './id';
 import { recomputeAllRouting, recomputeRoutingForElementIds } from './routing';
 import { clearAutosave, exportProjectJson, loadAutosave, saveAutosave } from './persistence';
 import {
   type Command,
   CreateElementCommand,
+  CreateElementsCommand,
   CreateRelationshipCommand,
+  DeleteElementsCommand,
   SetElementsPositionsCommand,
+  SetElementsRectsCommand,
+  UpdateRelationshipCommand,
   UpdateElementCommand,
 } from './commands';
 
-type Tool = 'select' | 'pan';
+type Tool = 'select' | 'pan' | 'relationship';
 
 type EditorState = {
   project: Project;
   ui: {
     tool: Tool;
+    grid: {
+      snap: boolean;
+    };
     selection: {
       elementIds: Set<string>;
+      relationshipId?: string;
+    };
+    relationship: {
+      pendingSourceId?: string;
+      type: RelationshipType;
     };
     autosave: {
       pending: boolean;
@@ -33,10 +45,13 @@ type EditorState = {
   };
 
   setTool(tool: Tool): void;
+  setRelationshipType(t: RelationshipType): void;
+  setGridSnap(enabled: boolean): void;
   setDiagramType(t: DiagramType): void;
   setViewport(v: Viewport): void;
 
   setSelection(ids: Set<string>): void;
+  setRelationshipSelection(id?: string): void;
 
   exportJson(): void;
   importProject(p: Project): void;
@@ -51,8 +66,21 @@ type EditorState = {
 
   createDefaultElementForCurrentDiagram(): void;
   updateElement(id: string, patch: Partial<UmlElement>): void;
+  updateRelationship(id: string, patch: Partial<import('./types').Relationship>): void;
   moveSelectedBy(delta: { dx: number; dy: number }): void;
   commitMoveSelected(prevPositions: Record<string, { x: number; y: number }>): void;
+
+  duplicateSelected(): void;
+  deleteSelected(): void;
+
+  alignSelected(mode: 'left' | 'right' | 'hcenter' | 'top' | 'bottom'): void;
+
+  resizeSelectedBy(delta: { dx: number; dy: number; handle: 'nw' | 'ne' | 'sw' | 'se' }): void;
+  commitResizeSelected(prevRects: Record<string, { x: number; y: number; width: number; height: number }>): void;
+
+  startRelationshipFrom(sourceId: string): void;
+  clearRelationshipDraft(): void;
+  createRelationship(sourceId: string, targetId: string, label?: string): void;
 
   createRelationshipDemo(): void;
 };
@@ -79,7 +107,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   project: initialProject,
   ui: {
     tool: 'select',
+    grid: { snap: false },
     selection: { elementIds: new Set() },
+    relationship: { type: 'association' },
     autosave: {
       pending: false,
       hasRecoveryData: loadAutosave() !== null,
@@ -88,12 +118,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   history: resetHistory(),
 
   setTool(tool) {
-    set((s) => ({ ui: { ...s.ui, tool } }));
+    set((s) => ({ ui: { ...s.ui, tool, relationship: { ...s.ui.relationship, pendingSourceId: undefined } } }));
+  },
+
+  setRelationshipType(t) {
+    set((s) => ({ ui: { ...s.ui, relationship: { ...s.ui.relationship, type: t } } }));
+  },
+
+  setGridSnap(enabled) {
+    set((s) => ({ ui: { ...s.ui, grid: { ...s.ui.grid, snap: enabled } } }));
   },
 
   setDiagramType(t) {
     // 정책: 타입 전환은 히스토리에 기록하지 않음(뷰 상태)
-    set((s) => ({ project: { ...s.project, diagramType: t }, ui: { ...s.ui, selection: { elementIds: new Set() } } }));
+    set((s) => ({
+      project: { ...s.project, diagramType: t },
+      ui: { ...s.ui, selection: { elementIds: new Set(), relationshipId: undefined } },
+    }));
   },
 
   setViewport(v) {
@@ -101,7 +142,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setSelection(ids) {
-    set((s) => ({ ui: { ...s.ui, selection: { elementIds: ids } } }));
+    set((s) => ({ ui: { ...s.ui, selection: { elementIds: ids, relationshipId: undefined } } }));
+  },
+
+  setRelationshipSelection(id) {
+    set((s) => ({ ui: { ...s.ui, selection: { elementIds: new Set(), relationshipId: id } } }));
+  },
+
+  startRelationshipFrom(sourceId) {
+    set((s) => ({ ui: { ...s.ui, relationship: { ...s.ui.relationship, pendingSourceId: sourceId } } }));
+  },
+
+  clearRelationshipDraft() {
+    set((s) => ({ ui: { ...s.ui, relationship: { ...s.ui.relationship, pendingSourceId: undefined } } }));
+  },
+
+  createRelationship(sourceId, targetId, label) {
+    const { project, ui } = get();
+    if (sourceId === targetId) return;
+    const rel = {
+      id: nextId('rel'),
+      diagramType: project.diagramType,
+      type: ui.relationship.type,
+      sourceId,
+      targetId,
+      label: label && label.trim().length > 0 ? label.trim() : undefined,
+      routing: { points: [] },
+    };
+    get().execute(new CreateRelationshipCommand(rel));
   },
 
   exportJson() {
@@ -245,6 +313,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     get().execute(new UpdateElementCommand(id, patch));
   },
 
+  updateRelationship(id, patch) {
+    get().execute(new UpdateRelationshipCommand(id, patch));
+  },
+
   moveSelectedBy({ dx, dy }) {
     const ids = Array.from(get().ui.selection.elementIds);
     if (ids.length === 0) return;
@@ -272,10 +344,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (el) nextPositions[id] = { x: el.position.x, y: el.position.y };
     }
 
+    const grid = 40;
+    const snap = (v: number) => Math.round(v / grid) * grid;
+    const snappedNext: Record<string, { x: number; y: number }> = ui.grid.snap
+      ? Object.fromEntries(Object.entries(nextPositions).map(([id, p]) => [id, { x: snap(p.x), y: snap(p.y) }]))
+      : nextPositions;
+
     let changed = false;
     for (const id of ids) {
       const prev = prevPositions[id];
-      const next = nextPositions[id];
+      const next = snappedNext[id];
       if (!prev || !next) continue;
       if (prev.x !== next.x || prev.y !== next.y) {
         changed = true;
@@ -284,7 +362,212 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     if (!changed) return;
 
+    if (ui.grid.snap) {
+      set((s) => {
+        const elements = s.project.elements.map((e) => {
+          const p = snappedNext[e.id];
+          return p ? { ...e, position: { x: p.x, y: p.y } } : e;
+        });
+        const project2 = { ...s.project, elements };
+        return { project: recomputeRoutingForElementIds(project2, new Set(ids)) };
+      });
+    }
+
+    get().execute(new SetElementsPositionsCommand(prevPositions, snappedNext));
+  },
+
+  duplicateSelected() {
+    const { project, ui } = get();
+    const ids = Array.from(ui.selection.elementIds);
+    if (ids.length === 0) return;
+
+    const step = 24;
+    const elementsToCreate: UmlElement[] = [];
+    for (const id of ids) {
+      const el = project.elements.find((e) => e.id === id);
+      if (!el) continue;
+      elementsToCreate.push({
+        ...el,
+        id: nextId('el'),
+        position: { x: el.position.x + step, y: el.position.y + step },
+      });
+    }
+    if (elementsToCreate.length === 0) return;
+
+    get().execute(new CreateElementsCommand(elementsToCreate));
+    get().setSelection(new Set(elementsToCreate.map((e) => e.id)));
+  },
+
+  deleteSelected() {
+    const ids = Array.from(get().ui.selection.elementIds);
+    if (ids.length === 0) return;
+    get().execute(new DeleteElementsCommand(ids));
+    get().setSelection(new Set());
+  },
+
+  alignSelected(mode) {
+    const { project, ui } = get();
+    const ids = Array.from(ui.selection.elementIds);
+    if (ids.length < 2) return;
+
+    const selected = project.elements.filter((e) => ids.includes(e.id));
+    if (selected.length < 2) return;
+
+    const prevPositions: Record<string, { x: number; y: number }> = {};
+    for (const el of selected) prevPositions[el.id] = { x: el.position.x, y: el.position.y };
+
+    const left = Math.min(...selected.map((e) => e.position.x));
+    const right = Math.max(...selected.map((e) => e.position.x + e.size.width));
+    const top = Math.min(...selected.map((e) => e.position.y));
+    const bottom = Math.max(...selected.map((e) => e.position.y + e.size.height));
+    const hcenter = (left + right) / 2;
+
+    const nextPositions: Record<string, { x: number; y: number }> = {};
+    for (const el of selected) {
+      let x = el.position.x;
+      let y = el.position.y;
+      if (mode === 'left') x = left;
+      if (mode === 'right') x = right - el.size.width;
+      if (mode === 'hcenter') x = hcenter - el.size.width / 2;
+      if (mode === 'top') y = top;
+      if (mode === 'bottom') y = bottom - el.size.height;
+
+      const grid = 40;
+      const snap = (v: number) => Math.round(v / grid) * grid;
+      if (ui.grid.snap) {
+        x = snap(x);
+        y = snap(y);
+      }
+
+      nextPositions[el.id] = { x, y };
+    }
+
+    let changed = false;
+    for (const id of ids) {
+      const p = prevPositions[id];
+      const n = nextPositions[id];
+      if (!p || !n) continue;
+      if (p.x !== n.x || p.y !== n.y) {
+        changed = true;
+        break;
+      }
+    }
+    if (!changed) return;
+
+    set((s) => {
+      const elements = s.project.elements.map((e) => {
+        const p = nextPositions[e.id];
+        return p ? { ...e, position: { x: p.x, y: p.y } } : e;
+      });
+      const project2 = { ...s.project, elements };
+      return { project: recomputeRoutingForElementIds(project2, new Set(ids)) };
+    });
+
     get().execute(new SetElementsPositionsCommand(prevPositions, nextPositions));
+  },
+
+  resizeSelectedBy({ dx, dy, handle }) {
+    const ids = Array.from(get().ui.selection.elementIds);
+    if (ids.length !== 1) return;
+    const id = ids[0]!;
+
+    set((s) => {
+      const elements = s.project.elements.map((e) => {
+        if (e.id !== id) return e;
+        const minW = 60;
+        const minH = 40;
+
+        const x0 = e.position.x;
+        const y0 = e.position.y;
+        const x1 = e.position.x + e.size.width;
+        const y1 = e.position.y + e.size.height;
+
+        let nx0 = x0;
+        let ny0 = y0;
+        let nx1 = x1;
+        let ny1 = y1;
+
+        if (handle === 'se') {
+          nx1 += dx;
+          ny1 += dy;
+        } else if (handle === 'nw') {
+          nx0 += dx;
+          ny0 += dy;
+        } else if (handle === 'ne') {
+          nx1 += dx;
+          ny0 += dy;
+        } else if (handle === 'sw') {
+          nx0 += dx;
+          ny1 += dy;
+        }
+
+        if (nx1 - nx0 < minW) {
+          if (handle === 'nw' || handle === 'sw') nx0 = nx1 - minW;
+          else nx1 = nx0 + minW;
+        }
+        if (ny1 - ny0 < minH) {
+          if (handle === 'nw' || handle === 'ne') ny0 = ny1 - minH;
+          else ny1 = ny0 + minH;
+        }
+
+        return {
+          ...e,
+          position: { x: nx0, y: ny0 },
+          size: { width: nx1 - nx0, height: ny1 - ny0 },
+        };
+      });
+      const project = { ...s.project, elements };
+      const updated = recomputeRoutingForElementIds(project, new Set([id]));
+      return { project: updated };
+    });
+    get().scheduleAutosave();
+  },
+
+  commitResizeSelected(prevRects) {
+    const { project, ui } = get();
+    const ids = Array.from(ui.selection.elementIds);
+    if (ids.length !== 1) return;
+    const id = ids[0]!;
+
+    const el = project.elements.find((e) => e.id === id);
+    const prev = prevRects[id];
+    if (!el || !prev) return;
+
+    const grid = 40;
+    const snap = (v: number) => Math.round(v / grid) * grid;
+    const minW = 60;
+    const minH = 40;
+    const nextRaw = { x: el.position.x, y: el.position.y, width: el.size.width, height: el.size.height };
+    const next = ui.grid.snap
+      ? {
+          x: snap(nextRaw.x),
+          y: snap(nextRaw.y),
+          width: Math.max(minW, snap(nextRaw.width)),
+          height: Math.max(minH, snap(nextRaw.height)),
+        }
+      : nextRaw;
+    if (prev.width === next.width && prev.height === next.height) return;
+
+    if (ui.grid.snap) {
+      set((s) => {
+        const elements = s.project.elements.map((e) =>
+          e.id === id ? { ...e, position: { x: next.x, y: next.y }, size: { width: next.width, height: next.height } } : e,
+        );
+        const project2 = { ...s.project, elements };
+        return { project: recomputeRoutingForElementIds(project2, new Set([id])) };
+      });
+    }
+
+    get().execute(
+      new SetElementsRectsCommand(
+        {
+          [id]: { position: { x: prev.x, y: prev.y }, size: { width: prev.width, height: prev.height } },
+        },
+        {
+          [id]: { position: { x: next.x, y: next.y }, size: { width: next.width, height: next.height } },
+        },
+      ),
+    );
   },
 
   createRelationshipDemo() {

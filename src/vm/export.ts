@@ -14,8 +14,17 @@ function downloadBlob(filename: string, blob: Blob) {
 }
 
 export async function exportCanvasPng(canvas: HTMLCanvasElement) {
+  const composite = document.createElement('canvas');
+  composite.width = canvas.width;
+  composite.height = canvas.height;
+  const ctx = composite.getContext('2d');
+  if (!ctx) throw new Error('PNG export failed');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, composite.width, composite.height);
+  ctx.drawImage(canvas, 0, 0);
+
   const blob: Blob = await new Promise((resolve, reject) => {
-    canvas.toBlob((b) => {
+    composite.toBlob((b) => {
       if (!b) reject(new Error('PNG export failed'));
       else resolve(b);
     }, 'image/png');
@@ -25,24 +34,30 @@ export async function exportCanvasPng(canvas: HTMLCanvasElement) {
   downloadBlob(filename, blob);
 }
 
-export function exportCanvasPdf(canvas: HTMLCanvasElement) {
+export function exportCanvasPdf(
+  canvas: HTMLCanvasElement,
+  canvasCssSize?: {
+    width: number;
+    height: number;
+  },
+) {
   const dataUrl = canvas.toDataURL('image/png');
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+  // canvas.width/height는 devicePixelRatio가 반영된 값일 수 있으므로, 가능하면 CSS size를 우선 사용
+  const imgW = canvasCssSize?.width && canvasCssSize.width > 0 ? canvasCssSize.width : canvas.width;
+  const imgH = canvasCssSize?.height && canvasCssSize.height > 0 ? canvasCssSize.height : canvas.height;
+
+  const orientation = imgW >= imgH ? 'landscape' : 'portrait';
+  const pdf = new jsPDF({ orientation, unit: 'pt', format: 'a4', compress: true });
 
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
-
-  const img = new Image();
-  img.src = dataUrl;
-
-  const imgW = img.width || canvas.width;
-  const imgH = img.height || canvas.height;
 
   const scale = Math.min(pageW / imgW, pageH / imgH);
   const w = imgW * scale;
   const h = imgH * scale;
 
-  pdf.addImage(dataUrl, 'PNG', (pageW - w) / 2, (pageH - h) / 2, w, h);
+  pdf.addImage(dataUrl, 'PNG', (pageW - w) / 2, (pageH - h) / 2, w, h, undefined, 'FAST');
 
   const filename = `uml-canvas-${new Date().toISOString().replace(/[:.]/g, '-')}.pdf`;
   pdf.save(filename);
@@ -72,6 +87,9 @@ export function exportProjectSvg(project: Project, canvasCssSize: { width: numbe
     `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`,
   );
 
+  // background (match canvas)
+  parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="#ffffff" />`);
+
   // relationships
   for (const rel of rels) {
     const routing = rel.routing;
@@ -82,13 +100,15 @@ export function exportProjectSvg(project: Project, canvasCssSize: { width: numbe
         return `${sp.x},${sp.y}`;
       })
       .join(' ');
-    parts.push(`<polyline points="${pts}" fill="none" stroke="#334155" stroke-width="2" />`);
+    parts.push(
+      `<polyline points="${pts}" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />`,
+    );
 
     if (rel.label) {
       const midIdx = Math.floor(routing.points.length / 2);
       const mp = worldToScreen(project.viewport, routing.points[midIdx]!);
       parts.push(
-        `<text x="${mp.x + 6 * scale}" y="${mp.y - 6 * scale}" font-size="${12 * scale}" fill="#334155" font-family="system-ui">${escapeXml(rel.label)}</text>`,
+        `<text x="${mp.x + 6 * scale}" y="${mp.y - 6 * scale}" font-size="${12 * scale}" fill="#334155" font-family="system-ui" dominant-baseline="alphabetic">${escapeXml(rel.label)}</text>`,
       );
     }
   }
@@ -105,13 +125,48 @@ export function exportProjectSvg(project: Project, canvasCssSize: { width: numbe
 
     const name = el.name ?? el.type;
     parts.push(
-      `<text x="${p.x + 10 * scale}" y="${p.y + 22 * scale}" font-size="${14 * scale}" fill="#0f172a" font-family="system-ui">${escapeXml(name)}</text>`,
+      `<text x="${p.x + 10 * scale}" y="${p.y + 22 * scale}" font-size="${14 * scale}" fill="#0f172a" font-family="system-ui" dominant-baseline="alphabetic">${escapeXml(name)}</text>`,
     );
+
+    let cursorY = p.y + 40 * scale;
 
     if (el.stereotype) {
       parts.push(
-        `<text x="${p.x + 10 * scale}" y="${p.y + 40 * scale}" font-size="${12 * scale}" fill="#475569" font-family="system-ui">${escapeXml(`<<${el.stereotype}>>`)}</text>`,
+        `<text x="${p.x + 10 * scale}" y="${p.y + 40 * scale}" font-size="${12 * scale}" fill="#475569" font-family="system-ui" dominant-baseline="alphabetic">${escapeXml(`<<${el.stereotype}>>`)}</text>`,
       );
+      cursorY = p.y + 58 * scale;
+    }
+
+    const isClassLike = el.type === 'class' || el.type === 'interface' || el.type === 'abstractClass';
+    if (isClassLike) {
+      const showAttrs = el.showAttributes ?? true;
+      const showMethods = el.showMethods ?? true;
+      const x = p.x + 10 * scale;
+      const lineH = 16 * scale;
+
+      if (showAttrs) {
+        const attrs = el.attributes ?? [];
+        for (const a of attrs.slice(0, 6)) {
+          const vis = a.visibility === 'public' ? '+' : a.visibility === 'private' ? '-' : '#';
+          const label = `${vis} ${a.name}: ${a.type}`;
+          parts.push(
+            `<text x="${x}" y="${cursorY}" font-size="${12 * scale}" fill="#0f172a" font-family="system-ui" dominant-baseline="alphabetic">${escapeXml(label)}</text>`,
+          );
+          cursorY += lineH;
+        }
+      }
+
+      if (showMethods) {
+        const methods = el.methods ?? [];
+        for (const m of methods.slice(0, 6)) {
+          const vis = m.visibility === 'public' ? '+' : m.visibility === 'private' ? '-' : '#';
+          const label = `${vis} ${m.name}(): ${m.returnType}`;
+          parts.push(
+            `<text x="${x}" y="${cursorY}" font-size="${12 * scale}" fill="#0f172a" font-family="system-ui" dominant-baseline="alphabetic">${escapeXml(label)}</text>`,
+          );
+          cursorY += lineH;
+        }
+      }
     }
   }
 

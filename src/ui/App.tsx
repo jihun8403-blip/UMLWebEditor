@@ -10,9 +10,36 @@ export function App() {
   const setDiagramType = useEditorStore((s) => s.setDiagramType);
   const tool = useEditorStore((s) => s.ui.tool);
   const setTool = useEditorStore((s) => s.setTool);
+  const relationshipType = useEditorStore((s) => s.ui.relationship.type);
+  const setRelationshipType = useEditorStore((s) => s.setRelationshipType);
+  const gridSnap = useEditorStore((s) => s.ui.grid.snap);
+  const setGridSnap = useEditorStore((s) => s.setGridSnap);
   const autosave = useEditorStore((s) => s.ui.autosave);
 
   const project = useEditorStore((s) => s.project);
+
+  React.useEffect(() => {
+    const onKeyDown = (ev: KeyboardEvent) => {
+      const target = ev.target as HTMLElement | null;
+      const tag = target?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || (target as any)?.isContentEditable) return;
+
+      const ctrl = ev.ctrlKey || ev.metaKey;
+      if (!ctrl) return;
+
+      const key = ev.key.toLowerCase();
+      if (key === 'z') {
+        ev.preventDefault();
+        useEditorStore.getState().undo();
+      } else if (key === 'y') {
+        ev.preventDefault();
+        useEditorStore.getState().redo();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -52,7 +79,9 @@ export function App() {
 
   const onExportPdf = () => {
     try {
-      exportCanvasPdf(getCanvas());
+      const canvas = getCanvas();
+      const rect = canvas.getBoundingClientRect();
+      exportCanvasPdf(canvas, { width: rect.width, height: rect.height });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'PDF export failed';
       window.alert(msg);
@@ -87,6 +116,15 @@ export function App() {
             </button>
             <button className={"btn " + (diagramType === 'sequence' ? 'btnPrimary' : '')} onClick={() => setDiagramType('sequence')}>
               Sequence
+            </button>
+          </div>
+
+          <div className="btnGroup">
+            <button className="btn" onClick={() => useEditorStore.getState().duplicateSelected()}>
+              Duplicate
+            </button>
+            <button className="btn" onClick={() => useEditorStore.getState().deleteSelected()}>
+              Delete
             </button>
           </div>
 
@@ -141,6 +179,26 @@ export function App() {
           <button className={"btn " + (tool === 'pan' ? 'btnPrimary' : '')} onClick={() => setTool('pan')}>
             Pan
           </button>
+          <button className={"btn " + (tool === 'relationship' ? 'btnPrimary' : '')} onClick={() => setTool('relationship')}>
+            Relationship
+          </button>
+        </div>
+
+        <div className="section">
+          <div className="label">Relationship Type</div>
+          <select className="input" value={relationshipType} onChange={(e) => setRelationshipType(e.target.value as any)}>
+            <option value="association">association</option>
+            <option value="dependency">dependency</option>
+            <option value="generalization">generalization</option>
+            <option value="realization">realization</option>
+          </select>
+        </div>
+
+        <div className="section">
+          <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={gridSnap} onChange={(e) => setGridSnap(e.target.checked)} />
+            Grid Snap
+          </label>
         </div>
 
         <div className="section">
@@ -151,6 +209,27 @@ export function App() {
             </button>
             <button className="btn" onClick={() => useEditorStore.getState().createRelationshipDemo()}>
               + Relationship (demo)
+            </button>
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="label">Align (multi-select)</div>
+          <div className="section btnGroup">
+            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('left')}>
+              Left
+            </button>
+            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('right')}>
+              Right
+            </button>
+            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('hcenter')}>
+              HCenter
+            </button>
+            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('top')}>
+              Top
+            </button>
+            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('bottom')}>
+              Bottom
             </button>
           </div>
         </div>
