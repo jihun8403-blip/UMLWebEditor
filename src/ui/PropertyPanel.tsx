@@ -10,6 +10,8 @@ export function PropertyPanel() {
   const updateElement = useEditorStore((s) => s.updateElement);
   const updateRelationship = useEditorStore((s) => s.updateRelationship);
 
+  const clampSize = (n: number) => Math.max(40, n);
+
   const setAttributeAt = (idx: number, patch: Partial<Attribute>) => {
     if (!element) return;
     const prev = element.attributes ?? [];
@@ -108,6 +110,56 @@ export function PropertyPanel() {
         <div className="kv">
           <div className="label">type</div>
           <div>{element.type}</div>
+        </div>
+
+        <div className="kv">
+          <div className="label">rect</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+            <input
+              className="input"
+              type="number"
+              value={element.position.x}
+              onChange={(e) =>
+                updateElement(element.id, {
+                  position: { x: Number(e.target.value), y: element.position.y },
+                })
+              }
+              placeholder="x"
+            />
+            <input
+              className="input"
+              type="number"
+              value={element.position.y}
+              onChange={(e) =>
+                updateElement(element.id, {
+                  position: { x: element.position.x, y: Number(e.target.value) },
+                })
+              }
+              placeholder="y"
+            />
+            <input
+              className="input"
+              type="number"
+              value={element.size.width}
+              onChange={(e) =>
+                updateElement(element.id, {
+                  size: { width: clampSize(Number(e.target.value)), height: element.size.height },
+                })
+              }
+              placeholder="w"
+            />
+            <input
+              className="input"
+              type="number"
+              value={element.size.height}
+              onChange={(e) =>
+                updateElement(element.id, {
+                  size: { width: element.size.width, height: clampSize(Number(e.target.value)) },
+                })
+              }
+              placeholder="h"
+            />
+          </div>
         </div>
         <div className="kv">
           <div className="label">name</div>
