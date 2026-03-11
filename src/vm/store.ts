@@ -21,6 +21,10 @@ type EditorState = {
   project: Project;
   ui: {
     tool: Tool;
+    panels: {
+      showLeft: boolean;
+      showRight: boolean;
+    };
     grid: {
       snap: boolean;
     };
@@ -49,6 +53,9 @@ type EditorState = {
   setGridSnap(enabled: boolean): void;
   setDiagramType(t: DiagramType): void;
   setViewport(v: Viewport): void;
+
+  toggleLeftPanel(): void;
+  toggleRightPanel(): void;
 
   setSelection(ids: Set<string>): void;
   setRelationshipSelection(id?: string): void;
@@ -107,6 +114,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   project: initialProject,
   ui: {
     tool: 'select',
+    panels: { showLeft: true, showRight: true },
     grid: { snap: false },
     selection: { elementIds: new Set() },
     relationship: { type: 'association' },
@@ -139,6 +147,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setViewport(v) {
     set((s) => ({ project: { ...s.project, viewport: v } }));
+  },
+
+  toggleLeftPanel() {
+    set((s) => ({ ui: { ...s.ui, panels: { ...s.ui.panels, showLeft: !s.ui.panels.showLeft } } }));
+  },
+
+  toggleRightPanel() {
+    set((s) => ({ ui: { ...s.ui, panels: { ...s.ui.panels, showRight: !s.ui.panels.showRight } } }));
   },
 
   setSelection(ids) {

@@ -10,6 +10,10 @@ export function App() {
   const setDiagramType = useEditorStore((s) => s.setDiagramType);
   const tool = useEditorStore((s) => s.ui.tool);
   const setTool = useEditorStore((s) => s.setTool);
+  const showLeft = useEditorStore((s) => s.ui.panels.showLeft);
+  const showRight = useEditorStore((s) => s.ui.panels.showRight);
+  const toggleLeftPanel = useEditorStore((s) => s.toggleLeftPanel);
+  const toggleRightPanel = useEditorStore((s) => s.toggleRightPanel);
   const relationshipType = useEditorStore((s) => s.ui.relationship.type);
   const setRelationshipType = useEditorStore((s) => s.setRelationshipType);
   const gridSnap = useEditorStore((s) => s.ui.grid.snap);
@@ -100,13 +104,27 @@ export function App() {
   };
 
   return (
-    <div className="appShell">
+    <div
+      className="appShell"
+      style={{
+        gridTemplateColumns: `${showLeft ? '240px' : '0px'} 1fr ${showRight ? '320px' : '0px'}`,
+      }}
+    >
       <div className="topbar">
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <strong>UML Web Editor</strong>
           <span className="label">diagramType: {diagramType}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="btnGroup">
+            <button className="btn" onClick={toggleLeftPanel}>
+              {showLeft ? 'Hide Tools' : 'Show Tools'}
+            </button>
+            <button className="btn" onClick={toggleRightPanel}>
+              {showRight ? 'Hide Properties' : 'Show Properties'}
+            </button>
+          </div>
+
           <div className="btnGroup">
             <button className={"btn " + (diagramType === 'class' ? 'btnPrimary' : '')} onClick={() => setDiagramType('class')}>
               Class
@@ -170,90 +188,94 @@ export function App() {
         </div>
       </div>
 
-      <div className="leftPanel">
-        <div className="label">Tools</div>
-        <div className="section btnGroup">
-          <button className={"btn " + (tool === 'select' ? 'btnPrimary' : '')} onClick={() => setTool('select')}>
-            Select
-          </button>
-          <button className={"btn " + (tool === 'pan' ? 'btnPrimary' : '')} onClick={() => setTool('pan')}>
-            Pan
-          </button>
-          <button className={"btn " + (tool === 'relationship' ? 'btnPrimary' : '')} onClick={() => setTool('relationship')}>
-            Relationship
-          </button>
-        </div>
-
-        <div className="section">
-          <div className="label">Relationship Type</div>
-          <select className="input" value={relationshipType} onChange={(e) => setRelationshipType(e.target.value as any)}>
-            <option value="association">association</option>
-            <option value="dependency">dependency</option>
-            <option value="generalization">generalization</option>
-            <option value="realization">realization</option>
-          </select>
-        </div>
-
-        <div className="section">
-          <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input type="checkbox" checked={gridSnap} onChange={(e) => setGridSnap(e.target.checked)} />
-            Grid Snap
-          </label>
-        </div>
-
-        <div className="section">
-          <div className="label">Create element (current type)</div>
+      {showLeft && (
+        <div className="leftPanel">
+          <div className="label">Tools</div>
           <div className="section btnGroup">
-            <button className="btn" onClick={() => useEditorStore.getState().createDefaultElementForCurrentDiagram()}>
-              + Element
+            <button className={"btn " + (tool === 'select' ? 'btnPrimary' : '')} onClick={() => setTool('select')}>
+              Select
             </button>
-            <button className="btn" onClick={() => useEditorStore.getState().createRelationshipDemo()}>
-              + Relationship (demo)
+            <button className={"btn " + (tool === 'pan' ? 'btnPrimary' : '')} onClick={() => setTool('pan')}>
+              Pan
+            </button>
+            <button className={"btn " + (tool === 'relationship' ? 'btnPrimary' : '')} onClick={() => setTool('relationship')}>
+              Relationship
             </button>
           </div>
-        </div>
 
-        <div className="section">
-          <div className="label">Align (multi-select)</div>
-          <div className="section btnGroup">
-            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('left')}>
-              Left
-            </button>
-            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('right')}>
-              Right
-            </button>
-            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('hcenter')}>
-              HCenter
-            </button>
-            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('top')}>
-              Top
-            </button>
-            <button className="btn" onClick={() => useEditorStore.getState().alignSelected('bottom')}>
-              Bottom
-            </button>
+          <div className="section">
+            <div className="label">Relationship Type</div>
+            <select className="input" value={relationshipType} onChange={(e) => setRelationshipType(e.target.value as any)}>
+              <option value="association">association</option>
+              <option value="dependency">dependency</option>
+              <option value="generalization">generalization</option>
+              <option value="realization">realization</option>
+            </select>
+          </div>
+
+          <div className="section">
+            <label className="label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={gridSnap} onChange={(e) => setGridSnap(e.target.checked)} />
+              Grid Snap
+            </label>
+          </div>
+
+          <div className="section">
+            <div className="label">Create element (current type)</div>
+            <div className="section btnGroup">
+              <button className="btn" onClick={() => useEditorStore.getState().createDefaultElementForCurrentDiagram()}>
+                + Element
+              </button>
+              <button className="btn" onClick={() => useEditorStore.getState().createRelationshipDemo()}>
+                + Relationship (demo)
+              </button>
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="label">Align (multi-select)</div>
+            <div className="section btnGroup">
+              <button className="btn" onClick={() => useEditorStore.getState().alignSelected('left')}>
+                Left
+              </button>
+              <button className="btn" onClick={() => useEditorStore.getState().alignSelected('right')}>
+                Right
+              </button>
+              <button className="btn" onClick={() => useEditorStore.getState().alignSelected('hcenter')}>
+                HCenter
+              </button>
+              <button className="btn" onClick={() => useEditorStore.getState().alignSelected('top')}>
+                Top
+              </button>
+              <button className="btn" onClick={() => useEditorStore.getState().alignSelected('bottom')}>
+                Bottom
+              </button>
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="label">History</div>
+            <div className="section btnGroup">
+              <button className="btn" onClick={() => useEditorStore.getState().undo()}>
+                Undo
+              </button>
+              <button className="btn" onClick={() => useEditorStore.getState().redo()}>
+                Redo
+              </button>
+            </div>
           </div>
         </div>
-
-        <div className="section">
-          <div className="label">History</div>
-          <div className="section btnGroup">
-            <button className="btn" onClick={() => useEditorStore.getState().undo()}>
-              Undo
-            </button>
-            <button className="btn" onClick={() => useEditorStore.getState().redo()}>
-              Redo
-            </button>
-          </div>
-        </div>
-      </div>
+      )}
 
       <div className="canvasPanel">
         <CanvasView />
       </div>
 
-      <div className="rightPanel">
-        <PropertyPanel />
-      </div>
+      {showRight && (
+        <div className="rightPanel">
+          <PropertyPanel />
+        </div>
+      )}
     </div>
   );
 }

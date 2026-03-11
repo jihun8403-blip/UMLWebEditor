@@ -114,7 +114,7 @@ export function PropertyPanel() {
 
         <div className="kv">
           <div className="label">rect</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <input
               className="input"
               type="number"
